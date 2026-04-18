@@ -251,7 +251,7 @@ def classify_with_ollama(
     model: str,
     title: str,
     content: str,
-    timeout: int = 180,
+    timeout: int = 300,
     temperature: float = 0.0,
     max_content_chars: int = 12000,
 ) -> Tuple[str, str]:
@@ -419,7 +419,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--model",
-        default="llama3.1:8b",
+        default="llama3.2",
         help='Ollama model name, e.g. "llama3.1:8b", "mistral", "gemma3:4b".',
     )
     parser.add_argument(
@@ -436,7 +436,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--timeout",
         type=int,
-        default=180,
+        default=300,
         help="HTTP timeout for each Ollama request in seconds.",
     )
     parser.add_argument(
@@ -471,7 +471,7 @@ def main() -> None:
             "stream": False,
             "options": {"temperature": 0},
         }
-        test_response = requests.post(OLLAMA_URL, json=test_payload, timeout=30)
+        test_response = requests.post(OLLAMA_URL, json=test_payload, timeout=180)
         test_response.raise_for_status()
     except Exception as e:
         print(
