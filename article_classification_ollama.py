@@ -32,6 +32,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import html
 import re
 import sys
 import time
@@ -58,26 +59,42 @@ def truncate_text(text: str, max_chars: int) -> str:
         return text
     return text[:max_chars].rsplit(" ", 1)[0] + "..."
 
+def strip_html(text: str) -> str:
+    """Remove HTML tags and decode HTML entities."""
+    if not text:
+        return ""
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = html.unescape(text)
+    return re.sub(r"\s+", " ", text).strip()
 
-def safe_get(record: Dict[str, Any], candidate_keys: List[str]) -> str:
+def safe_get(record: dict, candidate_keys: list[str]) -> str:
     """
     Return the first non-empty string value found among candidate keys.
+    Supports:
+    - plain strings
+    - numbers
+    - nested dicts with 'rendered'
     """
     for key in candidate_keys:
         value = record.get(key)
         if value is None:
             continue
+        
         if isinstance(value, str) and value.strip():
             return value.strip()
+        
         if isinstance(value, (int, float)):
             return str(value)
+        
+        if isinstance(value, dict):
+            rendered = value.get("rendered")
+            if isinstance(rendered, str) and rendered.strip():
+                return rendered.strip()
+            
     return ""
 
 
-def extract_article_fields(record: Dict[str, Any]) -> Dict[str, str]:
-    """
-    Attempt to map various JSON field names to standard article fields.
-    """
+def extract_article_fields(record: dict) -> dict[str, str]:
     article_id = safe_get(record, ["id", "post_id", "article_id", "uuid"])
     title = safe_get(record, ["title", "headline", "post_title", "name"])
     content = safe_get(
@@ -100,10 +117,13 @@ def extract_article_fields(record: Dict[str, Any]) -> Dict[str, str]:
     )
     source_url = safe_get(record, ["url", "link", "source_url", "permalink"])
 
+    title = normalize_whitespace(strip_html(title))
+    content = normalize_whitespace(strip_html(content))
+
     return {
         "article_id": article_id,
-        "title": normalize_whitespace(title),
-        "content": normalize_whitespace(content),
+        "title": title,
+        "content": content,
         "author": author,
         "date_published": date_published,
         "source_url": source_url,
@@ -172,37 +192,20 @@ def collect_json_files(input_dir: Path, recursive: bool) -> List[Path]:
 
 
 def build_prompt(title: str, content: str) -> str:
-    """
-    Build a strict classification prompt.
-    """
     return f"""
-You are a binary news article classifier.
+Classify the following news article.
 
-Task:
-Classify the following news article as exactly one of:
-- research related
-- not research related
+Return exactly one label only:
+research related
+not research related
 
-Decision rule:
-Return "research related" only if the article is mainly about research findings,
-a study, a survey, academic research, scientific results, institutional research,
-published findings, or reporting that substantially discusses research evidence.
+Do not ask questions.
+Do not explain.
+Do not output anything else.
 
-Return "not research related" if the article is mainly about crime, politics,
-events, accidents, opinion, announcements, sports, entertainment, or general news
-without substantive discussion of research findings.
+Title: {title}
 
-Important:
-- Use the title and content together.
-- Output only one label.
-- Do not explain your answer.
-- Do not output anything except one of the two labels.
-
-Title:
-{title}
-
-Content:
-{content}
+Content: {content}
 """.strip()
 
 
@@ -347,6 +350,18 @@ def process_articles(
             title = article["title"]
             content = article["content"]
 
+            if not title and not content:
+                print(
+                    f"[WARN] Article {idx} has empty title and content in {file_path}",
+                    file=sys.stderr,
+                )
+
+            elif title and not content:
+                print(
+                    f"[WARN] Article {idx} has title only in {file_path}",
+                    file=sys.stderr,
+                )
+
             if skip_empty and not title and not content:
                 print(
                     f"[WARN] Skipping empty article in {file_path} (index {idx})",
@@ -401,7 +416,6 @@ def process_articles(
     print(f"Successful           : {classified_ok}")
     print(f"Errors               : {classified_errors}")
     print(f"Output CSV           : {output_csv}")
-
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -458,6 +472,8 @@ def main() -> None:
 
     input_dir = Path(args.input_dir).expanduser().resolve()
     output_csv = Path(args.output_csv).expanduser().resolve()
+    
+    output_csv.parent.mkdir(parents=True, exist_ok=True)
 
     if not input_dir.exists() or not input_dir.is_dir():
         print(f"[ERROR] Input directory does not exist: {input_dir}", file=sys.stderr)
