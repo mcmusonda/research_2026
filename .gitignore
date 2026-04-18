@@ -1,0 +1,81 @@
+# =========================
+# Data Files (Your dataset)
+# =========================
+*.json
+*.jsonl
+*.ndjson
+*.csv
+*.tsv
+*.parquet
+
+# =========================
+# Compressed / Archive Files
+# =========================
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.bz2
+*.7z
+*.rar
+
+# =========================
+# Logs & Temporary Files
+# =========================
+*.log
+*.tmp
+*.temp
+*.swp
+*.bak
+
+# =========================
+# Python Environment
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# =========================
+# Jupyter / Notebooks
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDE / Editor
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# Output / Generated Files
+# =========================
+output/
+results/
+*.xlsx
+
+# =========================
+# Large ML / Model Files
+# =========================
+*.bin
+*.pt
+*.ckpt
+*.model
+
+# =========================
+# Ollama / Local Models (optional)
+# =========================
+# Uncomment if you store local models in project
+# models/
