@@ -193,15 +193,41 @@ def collect_json_files(input_dir: Path, recursive: bool) -> List[Path]:
 
 def build_prompt(title: str, content: str) -> str:
     return f"""
-Classify the following news article.
+You are a strict binary classifier.
 
-Return exactly one label only:
-research related
-not research related
+Task:
+Classify the news article as exactly one of these two labels:
+- research related
+- not research related
 
-Do not ask questions.
-Do not explain.
-Do not output anything else.
+Definition of "research related":
+Use "research related" ONLY if the article is primarily based on academic or scholarly research findings, such as:
+- university research
+- theses or dissertations
+- journal articles
+- scientific studies
+- formal institutional research with identifiable findings
+
+Definition of "not research related":
+Use "not research related" if the article is mainly:
+- general news
+- politics
+- crime
+- announcements
+- events
+- opinion or commentary
+- advocacy
+- interviews
+- press statements
+- articles that only mention research, experts, a report, or a study without actually reporting academic findings
+
+Important rules:
+- Be strict.
+- If unsure, choose "not research related".
+- If content is empty, use the title only, but still be strict.
+- Output only one label.
+- Do not explain your answer.
+- Do not ask questions.
 
 Title: {title}
 
