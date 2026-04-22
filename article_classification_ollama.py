@@ -196,84 +196,91 @@ def build_prompt(title: str, content: str) -> str:
 You are a strict binary classifier.
 
 Task:
-Classify the news article as exactly one of these two labels:
-- research related
-- not research related
+Decide whether this news article is primarily based on academic or scholarly research findings.
 
-Definition of "research related":
-Use "research related" ONLY if the article is primarily based on academic or scholarly research findings, such as:
-- university research
-- theses or dissertations
-- journal articles
-- scientific studies
-- formal institutional research with identifiable findings
+Output exactly one word only:
+Yes
+No
 
-Definition of "not research related":
-Use "not research related" if the article is mainly:
-- general news
-- politics
-- crime
-- announcements
-- events
-- opinion or commentary
-- advocacy
-- interviews
-- press statements
-- articles that only mention research, experts, a report, or a study without actually reporting academic findings
+Decision standard:
+Answer Yes only when the article mainly reports findings, results, conclusions, or evidence from a specific academic or scholarly study.
+Answer No in all other cases.
 
-Important rules:
-- Be strict.
-- If unsure, choose "not research related".
-- If content is empty, use the title only, but still be strict.
-- Output only one label.
-- Do not explain your answer.
-- Do not ask questions.
+Rules:
+- Mention of a university, school, lecturer, professor, student, or education issue alone is NOT enough.
+- Mention of "study", "research", "report", or "survey" alone is NOT enough.
+- The article must center on actual findings from a specific academic or scholarly study.
+- If uncertain, answer No.
+- Output only Yes or No.
+
+Examples:
+
+Example 1
+Title: University of Zambia study finds rising antibiotic resistance in Lusaka hospitals
+Content: Researchers from the University of Zambia reported findings from a study showing...
+Answer: Yes
+
+Example 2
+Title: UNZA introduces new postgraduate programmes
+Content: The University of Zambia has announced new programmes in the School of Education...
+Answer: No
+
+Example 3
+Title: Minister urges universities to invest in research
+Content: The minister said higher learning institutions should increase funding for research...
+Answer: No
+
+Example 4
+Title: Dissertation finds low uptake of digital repositories among journalists
+Content: A master's dissertation submitted to the University of Zambia found that journalists rarely use...
+Answer: Yes
+
+Example 5
+Title: Student protests disrupt learning at public university
+Content: Students protested over meal allowances and tuition fees...
+Answer: No
+
+Now classify this article.
 
 Title: {title}
 
 Content: {content}
 """.strip()
 
-
 def normalize_label(raw_response: str) -> str:
     """
-    Normalize model output to one of the allowed labels.
+    Normalize model output to Yes or No.
     """
-    text = normalize_whitespace(raw_response).lower()
+    text = normalize_whitespace(raw_response).strip().lower()
 
-    if "research related" == text:
-        return "research related"
-    if "not research related" == text:
-        return "not research related"
+    if text == "yes":
+        return "Yes"
+    if text == "no":
+        return "No"
 
-    # More forgiving matching
-    if "not research related" in text:
-        return "not research related"
-    if "research related" in text:
-        return "research related"
+    if text.startswith("yes"):
+        return "Yes"
+    if text.startswith("no"):
+        return "No"
 
-    # Fallbacks for unexpected model wording
-    negatives = [
-        "not related to research",
-        "not about research",
-        "non-research",
-        "not research-based",
-        "not research based",
-    ]
     positives = [
-        "research-based",
-        "research based",
-        "study-based",
-        "study based",
-        "based on research",
+        "academic research based",
+        "research related",
+        "based on academic research",
+        "based on scholarly research",
+    ]
+    negatives = [
+        "not research related",
+        "not academic research based",
+        "not based on academic research",
     ]
 
-    if any(p in text for p in negatives):
-        return "not research related"
     if any(p in text for p in positives):
-        return "research related"
+        return "Yes"
+    if any(n in text for n in negatives):
+        return "No"
 
-    return "unrecognized"
+    return "Unrecognized"
 
 
 def classify_with_ollama(
