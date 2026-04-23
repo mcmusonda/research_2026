@@ -5,7 +5,7 @@ with open('data/lusaka_times/lusaka_times_full_articles3.json', 'r', encoding='u
     data = json.load(f)  # Assumes JSON is an array of objects
 
 # Define how many items per file
-chunk_size = 4000  # Adjust based on your needs
+chunk_size = 1000  # Adjust based on your needs
 total_chunks = len(data) // chunk_size + (1 if len(data) % chunk_size else 0)
 
 # Split and save
