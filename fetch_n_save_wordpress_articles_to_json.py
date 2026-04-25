@@ -1,11 +1,14 @@
 import requests
 import json
 import os
+import certifi
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Define constant variables
-BASE_URL = "https://www.lusakatimes.com/wp-json/wp/v2/posts"
+BASE_URL = "https://znbc.co.zm/index.php?rest_route=/wp/v2/posts"
 
-def fetch_all_articles(base_url, per_page=0, max_pages=5):
+def fetch_all_articles(base_url, per_page=100, max_pages=5):
   all_articles = []
 
   for page in range(1, max_pages + 1):
@@ -15,8 +18,17 @@ def fetch_all_articles(base_url, per_page=0, max_pages=5):
     }
 
     try:
-      response = requests.get(base_url, params=params)
+      response = requests.get(
+          base_url,
+          params=params,
+          verify=False,
+          timeout=30
+      )
+      if response.status_code == 400:
+          print(f"No more valid pages. Stopped at page {page}.")
+          break
       response.raise_for_status()
+      
       posts = response.json()
 
       if not posts:
@@ -58,7 +70,7 @@ def fetch_all_articles(base_url, per_page=0, max_pages=5):
 
   return all_articles
 
-def save_to_json(data, filename='lusaka_times.json'):
+def save_to_json(data, filename='data/znbc.json'):
     """Append articles to the JSON file"""
     # Check if the file exists
     if os.path.exists(filename):
